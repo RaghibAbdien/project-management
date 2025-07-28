@@ -543,9 +543,6 @@ export function SalesDashboard() {
                   >
                     Cancel
                   </Button>
-                  <Button type="button" onClick={() => setShowForm(false)}>
-                    Save as Draft
-                  </Button>
                   <Button type="submit">Submit to Admin</Button>
                 </div>
               </CardContent>
