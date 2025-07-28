@@ -1,17 +1,29 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Filter } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Search, Filter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export function SalesDashboard() {
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(false);
 
   const projects = [
     {
@@ -32,7 +44,78 @@ export function SalesDashboard() {
       createdAt: "2024-01-14",
       estimatedValue: "$25,000",
     },
-  ]
+  ];
+
+  async function handleDummySubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const customerName = formData.get("customer_name") as string;
+    const contactPerson = formData.get("contact_person") as string;
+    const projectTitle = formData.get("project_title") as string;
+    const projectDescription = formData.get("project_description") as string;
+    const startDate = formData.get("project_start_date") as string;
+    const endDate = formData.get("project_end_date") as string;
+    const budgetStr = formData.get("budget") as string;
+    const priority = formData.get("priority") as string;
+
+    if (
+      !customerName ||
+      !contactPerson ||
+      !projectTitle ||
+      !projectDescription ||
+      !startDate ||
+      !endDate ||
+      !budgetStr ||
+      !priority
+    ) {
+      alert("Semua field wajib diisi.");
+      return;
+    }
+
+    const budget = parseFloat(budgetStr);
+    if (isNaN(budget)) {
+      alert("Budget harus berupa angka.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("User belum login.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/sales", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          customerName,
+          contactPerson,
+          projectTitle,
+          projectDescription,
+          startDate,
+          endDate,
+          budget,
+          priority,
+        }),
+      });
+
+      if (!res.ok) {
+        const { message } = await res.json();
+        throw new Error(message || "Submit gagal");
+      }
+
+      alert("Submit berhasil!");
+      setShowForm(false);
+    } catch (error: any) {
+      console.error("Terjadi kesalahan:", error.message);
+      alert(`Gagal menyimpan data: ${error.message}`);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -54,7 +137,9 @@ export function SalesDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Draft Projects</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Draft Projects
+                </p>
                 <p className="text-2xl font-bold text-gray-900">12</p>
               </div>
               <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -96,7 +181,9 @@ export function SalesDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Conversion Rate
+                </p>
                 <p className="text-2xl font-bold text-gray-900">68%</p>
               </div>
               <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -155,7 +242,9 @@ export function SalesDashboard() {
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h4 className="font-semibold text-gray-900">{project.title}</h4>
+                    <h4 className="font-semibold text-gray-900">
+                      {project.title}
+                    </h4>
                     <p className="text-sm text-gray-600">{project.client}</p>
                     <p className="text-xs text-gray-500">{project.id}</p>
                   </div>
@@ -165,8 +254,8 @@ export function SalesDashboard() {
                         project.status === "draft"
                           ? "bg-yellow-100 text-yellow-800"
                           : project.status === "submitted"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-800"
                       }
                     >
                       {project.status}
@@ -176,8 +265,8 @@ export function SalesDashboard() {
                         project.priority === "high"
                           ? "destructive"
                           : project.priority === "medium"
-                            ? "default"
-                            : "secondary"
+                          ? "default"
+                          : "secondary"
                       }
                     >
                       {project.priority}
@@ -202,12 +291,21 @@ export function SalesDashboard() {
                       Submit
                     </Button>
                   ) : (
-                    <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                    >
                       View
                     </Button>
                   )}
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -255,12 +353,16 @@ export function SalesDashboard() {
                 <tr key={project.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{project.title}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {project.title}
+                      </div>
                       <div className="text-sm text-gray-500">{project.id}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{project.client}</div>
+                    <div className="text-sm text-gray-900">
+                      {project.client}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge
@@ -268,8 +370,8 @@ export function SalesDashboard() {
                         project.status === "draft"
                           ? "bg-yellow-100 text-yellow-800"
                           : project.status === "submitted"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-800"
                       }
                     >
                       {project.status}
@@ -281,19 +383,28 @@ export function SalesDashboard() {
                         project.priority === "high"
                           ? "destructive"
                           : project.priority === "medium"
-                            ? "default"
-                            : "secondary"
+                          ? "default"
+                          : "secondary"
                       }
                     >
                       {project.priority}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.estimatedValue}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{project.createdAt}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {project.estimatedValue}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {project.createdAt}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -303,7 +414,12 @@ export function SalesDashboard() {
                         </svg>
                       </Button>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -317,7 +433,11 @@ export function SalesDashboard() {
                           Submit
                         </Button>
                       ) : (
-                        <Button variant="outline" size="sm" className="ml-2 bg-transparent">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="ml-2 bg-transparent"
+                        >
                           View
                         </Button>
                       )}
@@ -334,68 +454,105 @@ export function SalesDashboard() {
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <CardTitle>New Project Lead</CardTitle>
-              <CardDescription>Enter basic project information to create a new lead</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="client">Client Name</Label>
-                  <Input id="client" placeholder="Enter client name" />
+            <form onSubmit={handleDummySubmit}>
+              <CardHeader>
+                <CardTitle>New Project Lead</CardTitle>
+                <CardDescription>
+                  Enter basic project information to create a new lead
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="client">Client Name</Label>
+                    <Input
+                      id="client"
+                      name="customer_name"
+                      placeholder="Enter client name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contact">Contact Person</Label>
+                    <Input
+                      id="contact"
+                      name="contact_person"
+                      placeholder="Contact person"
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="contact">Contact Person</Label>
-                  <Input id="contact" placeholder="Contact person" />
+                  <Label htmlFor="title">Project Title</Label>
+                  <Input
+                    id="title"
+                    name="project_title"
+                    placeholder="Enter project title"
+                  />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="title">Project Title</Label>
-                <Input id="title" placeholder="Enter project title" />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Project Description</Label>
-                <Textarea id="description" placeholder="Brief description of the project" rows={3} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="budget">Estimated Budget</Label>
-                  <Input id="budget" placeholder="$0" />
+                  <Label htmlFor="description">Project Description</Label>
+                  <Textarea
+                    id="description"
+                    name="project_description"
+                    placeholder="Brief description of the project"
+                    rows={3}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="budget">Estimated Budget</Label>
+                    <Input id="budget" name="budget" placeholder="$0" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select name="priority">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="timeline">Expected Timeline</Label>
-                <Input id="timeline" placeholder="e.g., 3 months" />
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="start_date">Start Date</Label>
+                    <Input
+                      type="date"
+                      id="start_date"
+                      name="project_start_date"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_date">End Date</Label>
+                    <Input type="date" id="end_date" name="project_end_date" />
+                  </div>
+                </div>
 
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setShowForm(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => setShowForm(false)}>Save as Draft</Button>
-                <Button onClick={() => setShowForm(false)}>Submit to Admin</Button>
-              </div>
-            </CardContent>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={() => setShowForm(false)}>
+                    Save as Draft
+                  </Button>
+                  <Button type="submit">Submit to Admin</Button>
+                </div>
+              </CardContent>
+            </form>
           </Card>
         </div>
       )}
     </div>
-  )
+  );
 }

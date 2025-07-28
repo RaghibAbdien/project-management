@@ -1,15 +1,17 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { FolderOpen, LogOut } from "lucide-react"
-import { SalesDashboard } from "@/components/sales-dashboard"
-import { AdminDashboard } from "@/components/admin-dashboard"
-import { ManagerDashboard } from "@/components/manager-dashboard"
-import { SupervisorDashboard } from "@/components/supervisor-dashboard"
-import { TechnicianDashboard } from "@/components/technician-dashboard"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { FolderOpen, LogOut } from "lucide-react";
+import { SalesDashboard } from "@/components/sales-dashboard";
+import { AdminDashboard } from "@/components/admin-dashboard";
+import { ManagerDashboard } from "@/components/manager-dashboard";
+import { SupervisorDashboard } from "@/components/supervisor-dashboard";
+import { TechnicianDashboard } from "@/components/technician-dashboard";
 
-type UserRole = "sales" | "admin" | "manager" | "supervisor" | "technician"
+type UserRole = "sales" | "admin" | "manager" | "supervisor" | "technician";
 
 const roleConfig = {
   sales: {
@@ -37,27 +39,45 @@ const roleConfig = {
     description: "View assignments and submit updates",
     color: "bg-cyan-500",
   },
-}
+};
 
 export default function Dashboard() {
-  const [currentRole, setCurrentRole] = useState<UserRole>("sales")
+  const [currentRole, setCurrentRole] = useState<UserRole>("sales");
+  const [checking, setChecking] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login"); // redirect kalau belum login
+    } else {
+      setChecking(false); // selesai pengecekan token
+    }
+  }, []);
+
+  if (checking) return null
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/login");
+  };
 
   const renderDashboard = () => {
     switch (currentRole) {
       case "sales":
-        return <SalesDashboard />
+        return <SalesDashboard />;
       case "admin":
-        return <AdminDashboard />
+        return <AdminDashboard />;
       case "manager":
-        return <ManagerDashboard />
+        return <ManagerDashboard />;
       case "supervisor":
-        return <SupervisorDashboard />
+        return <SupervisorDashboard />;
       case "technician":
-        return <TechnicianDashboard />
+        return <TechnicianDashboard />;
       default:
-        return <SalesDashboard />
+        return <SalesDashboard />;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -67,16 +87,27 @@ export default function Dashboard() {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <FolderOpen className="h-6 sm:h-8 w-6 sm:w-8 text-blue-600" />
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Project Management</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Project Management
+              </h1>
             </div>
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <Button variant="outline" size="sm" className="hidden sm:flex bg-transparent">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:flex bg-transparent"
+              onClick={handleLogout}
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
-            <Button variant="outline" size="sm" className="sm:hidden bg-transparent">
+            <Button
+              variant="outline"
+              size="sm"
+              className="sm:hidden bg-transparent"
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
@@ -87,7 +118,9 @@ export default function Dashboard() {
         {/* Sidebar - Role Selector */}
         <aside className="w-full lg:w-64 bg-white border-b lg:border-r lg:border-b-0 border-gray-200 lg:min-h-screen p-4 sm:p-6">
           <nav className="space-y-2">
-            <div className="text-sm font-medium text-gray-500 mb-4">Switch Role</div>
+            <div className="text-sm font-medium text-gray-500 mb-4">
+              Switch Role
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
               {Object.entries(roleConfig).map(([role, config]) => (
                 <button
@@ -104,7 +137,9 @@ export default function Dashboard() {
                     <div className="font-medium text-sm lg:text-base truncate">
                       {config.title.replace(" Dashboard", "")}
                     </div>
-                    <div className="text-xs text-gray-500 hidden lg:block">{config.description}</div>
+                    <div className="text-xs text-gray-500 hidden lg:block">
+                      {config.description}
+                    </div>
                   </div>
                 </button>
               ))}
@@ -116,5 +151,5 @@ export default function Dashboard() {
         <main className="flex-1 p-4 sm:p-6">{renderDashboard()}</main>
       </div>
     </div>
-  )
+  );
 }
