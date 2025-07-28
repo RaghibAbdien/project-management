@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 
 export function SalesDashboard() {
   const [showForm, setShowForm] = useState(false);
-  const [projects, setProjects] = useState<any[]>([]); // State untuk menyimpan data dari API
+  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Ambil data dari API saat komponen pertama kali dimuat
@@ -51,7 +51,7 @@ export function SalesDashboard() {
         }
 
         const data = await res.json();
-        setProjects(data.projects); // Isi state dengan data dari API
+        setProjects(data.projects);
       } catch (error: any) {
         console.error("Error fetching projects:", error);
         alert(`Gagal memuat data: ${error.message}`);
@@ -288,7 +288,7 @@ export function SalesDashboard() {
                           <div className="flex flex-col space-y-1">
                             <Badge
                               className={
-                                project.status === "draft"
+                                project.status === "Draft"
                                   ? "bg-yellow-100 text-yellow-800"
                                   : project.status === "submitted"
                                   ? "bg-blue-100 text-blue-800"
@@ -428,7 +428,7 @@ export function SalesDashboard() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge
                             className={
-                              project.status === "draft"
+                              project.status === "Draft"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : project.status === "submitted"
                                 ? "bg-blue-100 text-blue-800"

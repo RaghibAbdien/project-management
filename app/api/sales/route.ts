@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
         customer_name AS client,
         project_title AS title,
         project_description AS description,
+        status,
         project_start_date AS startDate,
         project_end_date AS endDate,
         budget AS estimatedValue,
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
       client: row.client,
       title: row.title,
       priority: row.priority,
+      status: row.status || 'Draft',
       estimatedValue: `$${parseFloat(row.estimatedValue).toLocaleString()}`,
       createdAt: row.createdAt.toISOString().split("T")[0], // Format: YYYY-MM-DD
     }));
