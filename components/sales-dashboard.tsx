@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 
 export function SalesDashboard() {
   const [showForm, setShowForm] = useState(false);
@@ -65,7 +66,6 @@ export function SalesDashboard() {
 
   async function handleDummySubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const formData = new FormData(event.currentTarget);
     const customerName = formData.get("customer_name") as string;
     const contactPerson = formData.get("contact_person") as string;
@@ -86,19 +86,31 @@ export function SalesDashboard() {
       !budgetStr ||
       !priority
     ) {
-      alert("Semua field wajib diisi.");
+      toast({
+        title: "Field kosong",
+        description: "Semua field wajib diisi.",
+        variant: "destructive",
+      });
       return;
     }
 
     const budget = parseFloat(budgetStr);
     if (isNaN(budget)) {
-      alert("Budget harus berupa angka.");
+      toast({
+        title: "Budget tidak valid",
+        description: "Budget harus berupa angka.",
+        variant: "destructive",
+      });
       return;
     }
 
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("User belum login.");
+      toast({
+        title: "Belum login",
+        description: "Silakan login terlebih dahulu.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -123,14 +135,35 @@ export function SalesDashboard() {
 
       if (!res.ok) {
         const { message } = await res.json();
-        throw new Error(message || "Submit gagal");
+        toast({
+          title: "Gagal menyimpan",
+          description: message || "Terjadi kesalahan saat menyimpan data.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      alert("Submit berhasil!");
+      const result = await res.json();
+
+      // Tampilkan toast sukses
+      toast({
+        title: "Berhasil!",
+        description: "Project lead berhasil disimpan dan dikirim ke admin.",
+        variant: "default",
+      });
+
+      // Reset form dan tutup modal
       setShowForm(false);
+
+      // Opsional: refresh daftar proyek (jika Anda sudah implementasi fetch)
+      // refreshProjects();
     } catch (error: any) {
-      console.error("Terjadi kesalahan:", error.message);
-      alert(`Gagal menyimpan data: ${error.message}`);
+      console.error("Terjadi kesalahan:", error);
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan data. Cek koneksi atau coba lagi.",
+        variant: "destructive",
+      });
     }
   }
 
