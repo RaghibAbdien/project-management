@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -21,34 +21,51 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 
 export function SalesDashboard() {
   const [showForm, setShowForm] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const projects = [
-    {
-      id: "PRJ-001",
-      title: "Website Redesign",
-      client: "Tech Corp",
-      status: "draft",
-      priority: "high",
-      createdAt: "2024-01-15",
-      estimatedValue: "$15,000",
-    },
-    {
-      id: "PRJ-002",
-      title: "Mobile App Development",
-      client: "StartupXYZ",
-      status: "submitted",
-      priority: "medium",
-      createdAt: "2024-01-14",
-      estimatedValue: "$25,000",
-    },
-  ];
+  // Ambil data dari API saat komponen pertama kali dimuat
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          alert("Token tidak ditemukan. Silakan login.");
+          return;
+        }
+
+        const res = await fetch("/api/sales", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.message || "Gagal mengambil data");
+        }
+
+        const data = await res.json();
+        setProjects(data.projects);
+      } catch (error: any) {
+        console.error("Error fetching projects:", error);
+        alert(`Gagal memuat data: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProjects();
+  }, []);
 
   async function handleDummySubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const formData = new FormData(event.currentTarget);
     const customerName = formData.get("customer_name") as string;
     const contactPerson = formData.get("contact_person") as string;
@@ -69,19 +86,31 @@ export function SalesDashboard() {
       !budgetStr ||
       !priority
     ) {
-      alert("Semua field wajib diisi.");
+      toast({
+        title: "Field kosong",
+        description: "Semua field wajib diisi.",
+        variant: "destructive",
+      });
       return;
     }
 
     const budget = parseFloat(budgetStr);
     if (isNaN(budget)) {
-      alert("Budget harus berupa angka.");
+      toast({
+        title: "Budget tidak valid",
+        description: "Budget harus berupa angka.",
+        variant: "destructive",
+      });
       return;
     }
 
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("User belum login.");
+      toast({
+        title: "Belum login",
+        description: "Silakan login terlebih dahulu.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -106,14 +135,35 @@ export function SalesDashboard() {
 
       if (!res.ok) {
         const { message } = await res.json();
-        throw new Error(message || "Submit gagal");
+        toast({
+          title: "Gagal menyimpan",
+          description: message || "Terjadi kesalahan saat menyimpan data.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      alert("Submit berhasil!");
+      const result = await res.json();
+
+      // Tampilkan toast sukses
+      toast({
+        title: "Berhasil!",
+        description: "Project lead berhasil disimpan dan dikirim ke admin.",
+        variant: "default",
+      });
+
+      // Reset form dan tutup modal
       setShowForm(false);
+
+      // Opsional: refresh daftar proyek (jika Anda sudah implementasi fetch)
+      // refreshProjects();
     } catch (error: any) {
-      console.error("Terjadi kesalahan:", error.message);
-      alert(`Gagal menyimpan data: ${error.message}`);
+      console.error("Terjadi kesalahan:", error);
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan data. Cek koneksi atau coba lagi.",
+        variant: "destructive",
+      });
     }
   }
 
@@ -235,219 +285,274 @@ export function SalesDashboard() {
           <h3 className="text-lg font-semibold text-gray-900">Projects</h3>
         </div>
 
-        {/* Mobile Card View */}
-        <div className="block lg:hidden">
-          {projects.map((project) => (
-            <div key={project.id} className="border-b border-gray-200 p-4">
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">
-                      {project.title}
-                    </h4>
-                    <p className="text-sm text-gray-600">{project.client}</p>
-                    <p className="text-xs text-gray-500">{project.id}</p>
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <Badge
-                      className={
-                        project.status === "draft"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : project.status === "submitted"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                      }
-                    >
-                      {project.status}
-                    </Badge>
-                    <Badge
-                      variant={
-                        project.priority === "high"
-                          ? "destructive"
-                          : project.priority === "medium"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {project.priority}
-                    </Badge>
-                  </div>
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Memuat data...</div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="block lg:hidden">
+              {projects.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">
+                  Tidak ada project ditemukan
                 </div>
-
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-600">Value:</span>
-                    <p className="text-gray-900">{project.estimatedValue}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-600">Created:</span>
-                    <p className="text-gray-900">{project.createdAt}</p>
-                  </div>
-                </div>
-
-                <div className="flex space-x-2 pt-2">
-                  {project.status === "draft" ? (
-                    <Button size="sm" className="flex-1">
-                      Submit
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 bg-transparent"
+              ) : (
+                projects.map((project) => (
+                  <div
+                    key={project.id}
+                    className="border-b border-gray-200 p-4"
+                  >
+                    <div
+                      key={project.id}
+                      className="border-b border-gray-200 p-4"
                     >
-                      View
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">
+                              {project.title}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {project.client}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {project.id}
+                            </p>
+                          </div>
+                          <div className="flex flex-col space-y-1">
+                            <Badge
+                              className={
+                                project.status === "Draft"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : project.status === "submitted"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }
+                            >
+                              {project.status}
+                            </Badge>
+                            <Badge
+                              variant={
+                                project.priority === "high"
+                                  ? "destructive"
+                                  : project.priority === "medium"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {project.priority}
+                            </Badge>
+                          </div>
+                        </div>
 
-        {/* Desktop Table View */}
-        <div className="hidden lg:block overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Project
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Value
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {projects.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {project.title}
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-600">
+                              Value:
+                            </span>
+                            <p className="text-gray-900">
+                              {project.estimatedValue}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-600">
+                              Created:
+                            </span>
+                            <p className="text-gray-900">{project.createdAt}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex space-x-2 pt-2">
+                          {project.status === "draft" ? (
+                            <Button size="sm" className="flex-1">
+                              Submit
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 bg-transparent"
+                            >
+                              View
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                              />
+                            </svg>
+                          </Button>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">{project.id}</div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {project.client}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge
-                      className={
-                        project.status === "draft"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : project.status === "submitted"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                      }
-                    >
-                      {project.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge
-                      variant={
-                        project.priority === "high"
-                          ? "destructive"
-                          : project.priority === "medium"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {project.priority}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {project.estimatedValue}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.createdAt}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                          />
-                        </svg>
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </Button>
-                      {project.status === "draft" ? (
-                        <Button size="sm" className="ml-2">
-                          Submit
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="ml-2 bg-transparent"
-                        >
-                          View
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Project
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Client
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Priority
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Value
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {projects.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-6 py-4 text-center text-gray-500"
+                      >
+                        Tidak ada data
+                      </td>
+                    </tr>
+                  ) : (
+                    projects.map((project) => (
+                      <tr key={project.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {project.title}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {project.id}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {project.client}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            className={
+                              project.status === "Draft"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : project.status === "submitted"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-gray-100 text-gray-800"
+                            }
+                          >
+                            {project.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            variant={
+                              project.priority === "high"
+                                ? "destructive"
+                                : project.priority === "medium"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            {project.priority}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {project.estimatedValue}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {project.createdAt}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                />
+                              </svg>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </Button>
+                            {project.status === "draft" ? (
+                              <Button size="sm" className="ml-2">
+                                Submit
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2 bg-transparent"
+                              >
+                                View
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* New Project Form Modal */}

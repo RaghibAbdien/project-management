@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -25,27 +25,45 @@ import { Calendar, FileText, Users, Clock, Search, Filter } from "lucide-react";
 
 export function AdminDashboard() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [pendingProjects, setPendingProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const pendingProjects = [
-    {
-      id: "PRJ-001",
-      title: "Website Redesign",
-      client: "Tech Corp",
-      salesPerson: "John Doe",
-      submittedAt: "2024-01-15",
-      estimatedValue: "$15,000",
-      priority: "high",
-    },
-    {
-      id: "PRJ-002",
-      title: "Mobile App Development",
-      client: "StartupXYZ",
-      salesPerson: "Jane Smith",
-      submittedAt: "2024-01-14",
-      estimatedValue: "$25,000",
-      priority: "medium",
-    },
-  ];
+  useEffect(() => {
+    async function fetchPendingProjects() {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          alert("Token tidak ditemukan. Silakan login.");
+          return;
+        }
+
+        const res = await fetch("/api/admin", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(
+            error.message || "Gagal mengambil data pending project"
+          );
+        }
+
+        const data = await res.json();
+        setPendingProjects(data.projects);
+      } catch (error: any) {
+        console.error("Error fetching pending projects:", error);
+        alert(`Gagal memuat  ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPendingProjects();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -167,159 +185,176 @@ export function AdminDashboard() {
               </h3>
             </div>
 
-            {/* Mobile Card View */}
-            <div className="block sm:hidden">
-              {pendingProjects.map((project) => (
-                <div key={project.id} className="border-b border-gray-200 p-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">
-                          {project.title}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {project.client}
-                        </p>
-                        <p className="text-xs text-gray-500">{project.id}</p>
-                      </div>
-                      <Badge
-                        variant={
-                          project.priority === "high"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {project.priority}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-600">
-                          Sales:
-                        </span>
-                        <p className="text-gray-900">{project.salesPerson}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-600">
-                          Value:
-                        </span>
-                        <p className="text-gray-900">
-                          {project.estimatedValue}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-600">
-                        Submitted:
-                      </span>
-                      <span className="text-gray-900 ml-1">
-                        {project.submittedAt}
-                      </span>
-                    </div>
-
-                    <div className="flex space-x-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-transparent"
-                      >
-                        Review
-                      </Button>
-                      <Button size="sm" className="flex-1">
-                        Register
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Project
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Client
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Sales Person
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Priority
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Value
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Submitted
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+            {loading ? (
+              <div className="p-8 text-center text-gray-500">
+                Memuat data...
+              </div>
+            ) : pendingProjects.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                Tidak ada proyek pending.
+              </div>
+            ) : (
+              <>
+                {/* Mobile Card View */}
+                <div className="block sm:hidden">
                   {pendingProjects.map((project) => (
-                    <tr key={project.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {project.title}
+                    <div
+                      key={project.id}
+                      className="border-b border-gray-200 p-4"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">
+                              {project.title}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {project.client}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {project.id}
+                            </p>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {project.id}
+                          <Badge
+                            variant={
+                              project.priority === "high"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {project.priority}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-600">
+                              Sales:
+                            </span>
+                            <p className="text-gray-900">
+                              {project.salesPerson}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-600">
+                              Value:
+                            </span>
+                            <p className="text-gray-900">
+                              {project.estimatedValue}
+                            </p>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {project.client}
+                        <div className="text-sm">
+                          <span className="font-medium text-gray-600">
+                            Submitted:
+                          </span>
+                          <span className="text-gray-900 ml-1">
+                            {project.submittedAt}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {project.salesPerson}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge
-                          variant={
-                            project.priority === "high"
-                              ? "destructive"
-                              : "secondary"
-                          }
-                        >
-                          {project.priority}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {project.estimatedValue}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {project.submittedAt}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Button variant="outline" size="sm">
+                        <div className="flex space-x-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 bg-transparent"
+                          >
                             Review
                           </Button>
-                          <Button size="sm">Register</Button>
+                          <Button size="sm" className="flex-1">
+                            Register
+                          </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Project
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Client
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Sales Person
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Priority
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Value
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Submitted
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {pendingProjects.map((project) => (
+                        <tr key={project.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {project.title}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {project.id}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {project.client}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {project.salesPerson}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge
+                              variant={
+                                project.priority === "high"
+                                  ? "destructive"
+                                  : "secondary"
+                              }
+                            >
+                              {project.priority}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {project.estimatedValue}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {project.submittedAt}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end space-x-2">
+                              <Button variant="outline" size="sm">
+                                Review
+                              </Button>
+                              <Button size="sm">Register</Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         </TabsContent>
 
+        {/* Tab Registered Projects */}
         <TabsContent value="registered" className="space-y-4">
           <div className="bg-white rounded-lg border border-gray-200">
             <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
@@ -327,152 +362,8 @@ export function AdminDashboard() {
                 Registered Projects
               </h3>
             </div>
-
-            {/* Mobile Card View */}
-            <div className="block sm:hidden">
-              {pendingProjects.map((project) => (
-                <div key={project.id} className="border-b border-gray-200 p-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">
-                          {project.title}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {project.client}
-                        </p>
-                        <p className="text-xs text-gray-500">{project.id}</p>
-                      </div>
-                      <Badge
-                        variant={
-                          project.priority === "high"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {project.priority}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-600">
-                          Sales:
-                        </span>
-                        <p className="text-gray-900">{project.salesPerson}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-600">
-                          Value:
-                        </span>
-                        <p className="text-gray-900">
-                          {project.estimatedValue}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-600">
-                        Submitted:
-                      </span>
-                      <span className="text-gray-900 ml-1">
-                        {project.submittedAt}
-                      </span>
-                    </div>
-
-                    <div className="flex space-x-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-transparent"
-                      >
-                        Review
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Project
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Client
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Sales Person
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Priority
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Value
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Submitted
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {pendingProjects.map((project) => (
-                    <tr key={project.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {project.title}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {project.id}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {project.client}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {project.salesPerson}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge
-                          variant={
-                            project.priority === "high"
-                              ? "destructive"
-                              : "secondary"
-                          }
-                        >
-                          {project.priority}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {project.estimatedValue}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {project.submittedAt}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Button variant="outline" size="sm">
-                            Review
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="p-8 text-center text-gray-500">
+              Daftar proyek yang telah diregistrasi akan muncul di sini.
             </div>
           </div>
         </TabsContent>

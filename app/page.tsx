@@ -55,7 +55,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  if (checking) return null
+  if (checking) return null;
 
   const handleLogout = () => {
     localStorage.removeItem("token");
