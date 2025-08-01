@@ -22,9 +22,11 @@ import {
 import { Plus, Search, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import ConfirmDeleteDialog from "@/components/ui/confirmDelete";
 
 export function SalesDashboard() {
   const [showForm, setShowForm] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -512,6 +514,7 @@ export function SalesDashboard() {
                               </svg>
                             </Button>
                             <Button
+                              onClick={() => setShowDialog(true)}
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
@@ -655,6 +658,13 @@ export function SalesDashboard() {
           </Card>
         </div>
       )}
+
+      {/* Confirm Delete */}
+      <ConfirmDeleteDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        onConfirm={() => {}}
+      />
     </div>
   );
 }
