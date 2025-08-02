@@ -29,6 +29,51 @@ export function SalesDashboard() {
   const [showDialog, setShowDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [formData, setFormData] = useState({
+    id: null,
+    customer_name: "",
+    contact_person: "",
+    project_title: "",
+    project_description: "",
+    budget: "",
+    priority: "",
+    project_start_date: "",
+    project_end_date: "",
+  });
+
+  const openCreateProject = () => {
+    setFormMode("create");
+    setFormData({
+      id: null,
+      customer_name: "",
+      contact_person: "",
+      project_title: "",
+      project_description: "",
+      budget: "",
+      priority: "",
+      project_start_date: "",
+      project_end_date: "",
+    });
+    setShowForm(true);
+  };
+
+  const openEditProject = (project: any) => {
+    setFormMode("edit");
+    setFormData({
+      id: project.idData,
+      customer_name: project.client,
+      contact_person: project.contact_person,
+      project_title: project.title,
+      project_description: project.description,
+      budget: project.budget,
+      priority: project.priority.toLowerCase(),
+      project_start_date: project.startDate,
+      project_end_date: project.endDate,
+    });
+    setTimeout(() => setShowForm(true), 50);
+    console.log("🚀 openEditProject -> project", project);
+  };
 
   // Ambil data dari API saat komponen pertama kali dimuat
   useEffect(() => {
@@ -68,39 +113,44 @@ export function SalesDashboard() {
 
   async function handleDummySubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const customerName = formData.get("customer_name") as string;
-    const contactPerson = formData.get("contact_person") as string;
-    const projectTitle = formData.get("project_title") as string;
-    const projectDescription = formData.get("project_description") as string;
-    const startDate = formData.get("project_start_date") as string;
-    const endDate = formData.get("project_end_date") as string;
-    const budgetStr = formData.get("budget") as string;
-    const priority = formData.get("priority") as string;
+    const {
+      customer_name,
+      contact_person,
+      project_title,
+      project_description,
+      project_start_date,
+      project_end_date,
+      budget,
+      priority,
+    } = formData;
+
+    const parsedBudget = parseFloat(formData.budget);
 
     if (
-      !customerName ||
-      !contactPerson ||
-      !projectTitle ||
-      !projectDescription ||
-      !startDate ||
-      !endDate ||
-      !budgetStr ||
-      !priority
+      customer_name.trim() === "" ||
+      contact_person.trim() === "" ||
+      project_title.trim() === "" ||
+      project_description.trim() === "" ||
+      project_start_date.trim() === "" ||
+      project_end_date.trim() === "" ||
+      priority.trim() === "" ||
+      formData.budget.trim() === "" ||
+      isNaN(parsedBudget) ||
+      parsedBudget <= 0
     ) {
       toast({
-        title: "Field kosong",
-        description: "Semua field wajib diisi.",
+        title: "Field kosong atau tidak valid",
+        description: "Semua field wajib diisi dan harus valid.",
         variant: "destructive",
       });
       return;
     }
 
-    const budget = parseFloat(budgetStr);
-    if (isNaN(budget)) {
+    if (!formData.budget.trim() || isNaN(parsedBudget) || parsedBudget < 0) {
       toast({
         title: "Budget tidak valid",
-        description: "Budget harus berupa angka.",
+        description:
+          "Pastikan budget diisi dengan angka yang benar dan tidak negatif.",
         variant: "destructive",
       });
       return;
@@ -118,22 +168,15 @@ export function SalesDashboard() {
 
     try {
       const res = await fetch("/api/sales", {
-        method: "POST",
+        method: formMode === "create" ? "POST" : "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          customerName,
-          contactPerson,
-          projectTitle,
-          projectDescription,
-          startDate,
-          endDate,
-          budget,
-          priority,
-        }),
+        body: JSON.stringify(formData),
       });
+
+      const data = await res.json();
 
       if (!res.ok) {
         const { message } = await res.json();
@@ -144,21 +187,18 @@ export function SalesDashboard() {
         });
         return;
       }
-
-      const result = await res.json();
-
       // Tampilkan toast sukses
       toast({
         title: "Berhasil!",
-        description: "Project lead berhasil disimpan dan dikirim ke admin.",
+        description: data.message,
         variant: "default",
       });
 
       // Reset form dan tutup modal
       setShowForm(false);
-
-      // Opsional: refresh daftar proyek (jika Anda sudah implementasi fetch)
-      // refreshProjects();
+      setInterval(() => {
+        window.location.reload(); // Reload halaman untuk memperbarui daftar proyek
+      }, 1500);
     } catch (error: any) {
       console.error("Terjadi kesalahan:", error);
       toast({
@@ -177,7 +217,7 @@ export function SalesDashboard() {
           <h2 className="text-3xl font-bold text-gray-900">Sales Dashboard</h2>
           <p className="text-gray-600">Manage project leads and submissions</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => openCreateProject()}>
           <Plus className="h-4 w-4 mr-2" />
           New Project Lead
         </Button>
@@ -495,6 +535,7 @@ export function SalesDashboard() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <Button
+                              onClick={() => openEditProject(project)}
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
@@ -576,6 +617,13 @@ export function SalesDashboard() {
                     <Input
                       id="client"
                       name="customer_name"
+                      value={formData.customer_name}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          customer_name: e.target.value,
+                        })
+                      }
                       placeholder="Enter client name"
                     />
                   </div>
@@ -584,6 +632,13 @@ export function SalesDashboard() {
                     <Input
                       id="contact"
                       name="contact_person"
+                      value={formData.contact_person}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          contact_person: e.target.value,
+                        })
+                      }
                       placeholder="Contact person"
                     />
                   </div>
@@ -594,6 +649,13 @@ export function SalesDashboard() {
                   <Input
                     id="title"
                     name="project_title"
+                    value={formData.project_title}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        project_title: e.target.value,
+                      })
+                    }
                     placeholder="Enter project title"
                   />
                 </div>
@@ -605,19 +667,41 @@ export function SalesDashboard() {
                     name="project_description"
                     placeholder="Brief description of the project"
                     rows={3}
+                    value={formData.project_description}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        project_description: e.target.value,
+                      })
+                    }
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="budget">Estimated Budget</Label>
-                    <Input id="budget" name="budget" placeholder="$0" />
+                    <Input
+                      id="budget"
+                      type="number"
+                      min={1}
+                      name="budget"
+                      placeholder="$0"
+                      value={formData.budget}
+                      onChange={(e) =>
+                        setFormData({ ...formData, budget: e.target.value })
+                      }
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="priority">Priority</Label>
-                    <Select name="priority">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select priority" />
+                    <Select
+                      value={formData.priority}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, priority: value })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Pilih prioritas" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
@@ -635,11 +719,38 @@ export function SalesDashboard() {
                       type="date"
                       id="start_date"
                       name="project_start_date"
+                      value={formData.project_start_date}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          project_start_date: e.target.value,
+                          // Reset end date jika sebelumnya sudah dipilih tapi jadi tidak valid
+                          project_end_date:
+                            formData.project_end_date &&
+                            new Date(e.target.value) >
+                              new Date(formData.project_end_date)
+                              ? ""
+                              : formData.project_end_date,
+                        })
+                      }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="end_date">End Date</Label>
-                    <Input type="date" id="end_date" name="project_end_date" />
+                    <Input
+                      type="date"
+                      id="end_date"
+                      name="project_end_date"
+                      value={formData.project_end_date}
+                      min={formData.project_start_date || undefined}
+                      disabled={!formData.project_start_date}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          project_end_date: e.target.value,
+                        })
+                      }
+                    />
                   </div>
                 </div>
 
