@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/utils/auth";
+import { Contact } from "lucide-react";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,8 +28,12 @@ export async function GET(req: NextRequest) {
         p.id,
         p.project_title AS title,
         p.customer_name AS client,
+        p.contact_person AS contactPerson,
         u.name AS salesPerson,
         p.budget AS estimatedValue,
+        p.project_description AS description,
+        p.project_start_date AS startDate,
+        p.project_end_date AS endDate,
         p.priority,
         p.created_at AS submittedAt
       FROM dummy_projects p
@@ -41,6 +46,10 @@ export async function GET(req: NextRequest) {
       id: `PRJ-${row.id.toString().padStart(3, "0")}`,
       title: row.title,
       client: row.client,
+      contact: row.contactPerson,
+      description: row.description,
+      startDate: row.startDate ? row.startDate.toISOString().split("T")[0] : "", // Format: YYYY-MM-DD
+      endDate: row.endDate ? row.endDate.toISOString().split("T")[0] : "", // Format: YYYY-MM-DD
       salesPerson: row.salesPerson,
       estimatedValue: `$${parseFloat(row.estimatedValue).toLocaleString()}`,
       priority: row.priority,

@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from "react";
 import {
+  getStatusColor,
+  getPriorityColor,
+  formatDate,
+} from "@/utils/helper-sales";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -11,6 +16,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -21,12 +34,23 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, FileText, Users, Clock, Search, Filter } from "lucide-react";
+import {
+  Calendar,
+  FileText,
+  Users,
+  Clock,
+  Search,
+  Filter,
+  User,
+  Phone,
+  DollarSign,
+} from "lucide-react";
 
 export function AdminDashboard() {
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDetail, setShowDetail] = useState(false);
 
   useEffect(() => {
     async function fetchPendingProjects() {
@@ -64,6 +88,11 @@ export function AdminDashboard() {
 
     fetchPendingProjects();
   }, []);
+
+  const handleViewDetail = (project: any) => {
+    setSelectedProject(project);
+    setShowDetail(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -338,7 +367,11 @@ export function AdminDashboard() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end space-x-2">
-                              <Button variant="outline" size="sm">
+                              <Button
+                                onClick={() => handleViewDetail(project)}
+                                variant="outline"
+                                size="sm"
+                              >
                                 Review
                               </Button>
                               <Button size="sm">Register</Button>
@@ -368,6 +401,145 @@ export function AdminDashboard() {
           </div>
         </TabsContent>
       </Tabs>
+      {/* Modal Detail */}
+      {showDetail && (
+        <Dialog open={showDetail} onOpenChange={setShowDetail}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <DialogTitle className="text-xl font-semibold mb-2">
+                    {selectedProject.title}
+                  </DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground">
+                    ID: {selectedProject.id}
+                  </DialogDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Badge className={getPriorityColor(selectedProject.priority)}>
+                    {selectedProject.priority}
+                  </Badge>
+                  <Badge className={getStatusColor(selectedProject.status)}>
+                    {selectedProject.status}
+                  </Badge>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Description */}
+              <div>
+                <h3 className="font-medium mb-2">Deskripsi</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {selectedProject.description}
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* Client Information */}
+              <div className="grid gap-4">
+                <h3 className="font-medium">Informasi Klien</h3>
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {selectedProject.client}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Nama Klien
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {selectedProject.contact}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Kontak Person
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Financial Information */}
+              <div className="grid gap-4">
+                <h3 className="font-medium">Informasi Keuangan</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {selectedProject.estimatedValue}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Estimasi Nilai
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        ${selectedProject.budget}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Budget</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Timeline Information */}
+              <div className="grid gap-4">
+                <h3 className="font-medium">Timeline Proyek</h3>
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {formatDate(selectedProject.startDate)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Tanggal Mulai
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {formatDate(selectedProject.endDate)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Tanggal Selesai
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {formatDate(selectedProject.submittedAt)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Tanggal Dibuat
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
