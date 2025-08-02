@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
         contact_person,
         project_title AS title,
         project_description AS description,
+        status,
         project_start_date AS startDate,
         project_end_date AS endDate,
         budget AS estimatedValue,
