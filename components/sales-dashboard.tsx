@@ -30,6 +30,9 @@ export function SalesDashboard() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+    null
+  );
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -229,6 +232,35 @@ export function SalesDashboard() {
       });
     }
   }
+
+  const handleDelete = async (id: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/sales/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
+
+      toast({
+        title: "Berhasil",
+        description: "Project berhasil dihapus.",
+      });
+
+      setProjects((prev) => prev.filter((p) => p.idData !== id));
+      setShowDialog(false);
+    } catch (err: any) {
+      toast({
+        title: "Gagal menghapus",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -581,7 +613,10 @@ export function SalesDashboard() {
                               </svg>
                             </Button>
                             <Button
-                              onClick={() => setShowDialog(true)}
+                              onClick={() => {
+                                setSelectedProjectId(project.idData);
+                                setShowDialog(true);
+                              }}
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
@@ -800,7 +835,12 @@ export function SalesDashboard() {
       <ConfirmDeleteDialog
         open={showDialog}
         onOpenChange={setShowDialog}
-        onConfirm={() => {}}
+        onConfirm={() => {
+          if (selectedProjectId !== null) {
+            handleDelete(selectedProjectId);
+          }
+        }}
+
       />
     </div>
   );
