@@ -25,6 +25,9 @@ import { toast } from "@/hooks/use-toast";
 import ConfirmDeleteDialog from "@/components/ui/confirmDelete";
 
 export function SalesDashboard() {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
@@ -40,6 +43,24 @@ export function SalesDashboard() {
     priority: "",
     project_start_date: "",
     project_end_date: "",
+  });
+
+  const filteredData = projects.filter((project) => {
+    const searchLower = search.toLowerCase();
+
+    const matchTitle = (project.title ?? "")
+      .toLowerCase()
+      .includes(searchLower);
+    const matchClient = (project.client ?? "")
+      .toLowerCase()
+      .includes(searchLower);
+    const matchStatus =
+      statusFilter === "all" || project.status === statusFilter;
+    const matchPriority =
+      priorityFilter === "all" ||
+      project.priority.toLowerCase() === priorityFilter;
+
+    return (matchTitle || matchClient) && matchStatus && matchPriority;
   });
 
   const openCreateProject = () => {
@@ -290,7 +311,12 @@ export function SalesDashboard() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
         <div className="relative flex-1 w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Search projects..." className="pl-10" />
+          <Input
+            placeholder="Search projects..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
           <Select>
@@ -303,7 +329,7 @@ export function SalesDashboard() {
               <SelectItem value="submitted">Submitted</SelectItem>
             </SelectContent>
           </Select>
-          <Select>
+          <Select onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
@@ -483,7 +509,7 @@ export function SalesDashboard() {
                       </td>
                     </tr>
                   ) : (
-                    projects.map((project) => (
+                    filteredData.map((project) => (
                       <tr key={project.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
