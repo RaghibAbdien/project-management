@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getStatusColor, getPriorityColor, formatDate } from "@/utils/helper-sales";
 import {
   Card,
   CardContent,
@@ -11,6 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -19,7 +29,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Filter } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Filter,
+  Calendar,
+  DollarSign,
+  Eye,
+  Phone,
+  User,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import ConfirmDeleteDialog from "@/components/ui/confirmDelete";
@@ -29,7 +48,9 @@ export function SalesDashboard() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
     null
   );
@@ -97,6 +118,11 @@ export function SalesDashboard() {
     });
     setTimeout(() => setShowForm(true), 50);
     console.log("🚀 openEditProject -> project", project);
+  };
+
+  const handleViewDetail = (project: any) => {
+    setSelectedProject(project);
+    setShowDetail(true);
   };
 
   // Ambil data dari API saat komponen pertama kali dimuat
@@ -641,6 +667,7 @@ export function SalesDashboard() {
                               </Button>
                             ) : (
                               <Button
+                              onClick={() => handleViewDetail(project)}
                                 variant="outline"
                                 size="sm"
                                 className="ml-2 bg-transparent"
@@ -831,6 +858,142 @@ export function SalesDashboard() {
         </div>
       )}
 
+      {/* Modal Detail */}
+      {showDetail && (
+        <Dialog open={showDetail} onOpenChange={setShowDetail}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <DialogTitle className="text-xl font-semibold mb-2">
+                    {selectedProject.title}
+                  </DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground">
+                    ID: {selectedProject.id}
+                  </DialogDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Badge className={getPriorityColor(selectedProject.priority)}>
+                    {selectedProject.priority}
+                  </Badge>
+                  <Badge className={getStatusColor(selectedProject.status)}>
+                    {selectedProject.status}
+                  </Badge>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Description */}
+              <div>
+                <h3 className="font-medium mb-2">Deskripsi</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {selectedProject.description}
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* Client Information */}
+              <div className="grid gap-4">
+                <h3 className="font-medium">Informasi Klien</h3>
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{selectedProject.client}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Nama Klien
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {selectedProject.contact_person}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Kontak Person
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Financial Information */}
+              <div className="grid gap-4">
+                <h3 className="font-medium">Informasi Keuangan</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {selectedProject.estimatedValue}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Estimasi Nilai
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">${selectedProject.budget}</p>
+                      <p className="text-xs text-muted-foreground">Budget</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Timeline Information */}
+              <div className="grid gap-4">
+                <h3 className="font-medium">Timeline Proyek</h3>
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {formatDate(selectedProject.startDate)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Tanggal Mulai
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {formatDate(selectedProject.endDate)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Tanggal Selesai
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {formatDate(selectedProject.createdAt)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Tanggal Dibuat
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Confirm Delete */}
       <ConfirmDeleteDialog
         open={showDialog}
@@ -840,7 +1003,6 @@ export function SalesDashboard() {
             handleDelete(selectedProjectId);
           }
         }}
-
       />
     </div>
   );
